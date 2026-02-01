@@ -1,0 +1,258 @@
+package com.tryright;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * ProcessTriangles - counts right triangles using multiple processes
+ * 
+ * Usage: java com.tryright.ProcessTriangles <input_file> <num_processes>
+ * 
+ * Splits the work among multiple processes to use all CPU cores.
+ * Each process handles a subset and reports its count back.
+ */
+public class ProcessTriangles {
+    
+    public static void main(String[] args) {
+        // Check command line arguments
+        if (args.length != 2) {
+            System.err.println("Usage: java com.tryright.ProcessTriangles <input_file> <num_processes>");
+            System.exit(1);
+        }
+        
+        String filename = args[0];
+        int numProcesses;
+        
+        try {
+            numProcesses = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            System.err.println("Error: Number of processes must be an integer");
+            System.exit(1);
+            return;
+        }
+        
+        // Check number of processes is valid
+        if (numProcesses <= 0) {
+            System.err.println("Error: Number of processes must be positive");
+            System.exit(1);
+        }
+        
+        if (numProcesses > 256) {
+            System.err.println("Error: Number of processes cannot exceed 256");
+            System.exit(1);
+        }
+        
+        // Check if file exists and can be read
+        File inputFile = new File(filename);
+        if (!inputFile.exists()) {
+            System.err.println("Error: No such file or directory");
+            System.exit(2);
+        }
+        
+        if (!inputFile.canRead()) {
+            System.err.println("Error: Permission denied");
+            System.exit(2);
+        }
+        
+        try {
+            // Read all points from file
+            List<TrianglesUtils.Point> points = readPoints(filename);
+            
+            // Use single process if we have too few points
+            if (points.size() < 3 || numProcesses == 1) {
+                int count = TrianglesUtils.countRightTriangles(points, 0, points.size());
+                System.out.println(count);
+                return;
+            }
+            
+            // Limit processes to available CPU cores and dataset size
+            int availableProcessors = Runtime.getRuntime().availableProcessors();
+            int actualProcesses = Math.min(numProcesses, Math.min(points.size(), availableProcessors));
+            
+            // Use single process if dataset is very small
+            if (actualProcesses <= 1 || points.size() < 4) {
+                int count = TrianglesUtils.countRightTriangles(points, 0, points.size());
+                System.out.println(count);
+                return;
+            }
+            // Distribute work among processes
+            int totalCount = countWithMultipleProcesses(points, actualProcesses);
+
+            System.out.println(totalCount);
+            
+        } catch (FileNotFoundException e) {
+            System.err.println("Error: No such file or directory");
+            System.exit(2);
+        } catch (IOException e) {
+            if (e.getMessage() != null && e.getMessage().contains("Permission denied")) {
+                System.err.println("Error: Permission denied");
+            } else {
+                System.err.println("Error: " + e.getMessage());
+            }
+            System.exit(2);
+        }
+    }
+    
+    /**
+     * Read all points from the input file
+     */
+    private static java.util.List<TrianglesUtils.Point> readPoints(String filename) throws IOException {
+        java.util.List<TrianglesUtils.Point> points = new java.util.ArrayList<>();
+        
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+            String line = reader.readLine();
+            
+            if (line == null) {
+                System.err.println("Error: Empty file");
+                System.exit(3);
+            }
+            
+            int n;
+            try {
+                n = Integer.parseInt(line.trim());
+            } catch (NumberFormatException e) {
+                System.err.println("Error: First line must be an integer");
+                System.exit(3);
+                return points;
+            }
+            
+            int pointCount = 0;
+            while ((line = reader.readLine()) != null && pointCount < n) {
+                line = line.trim();
+                if (line.isEmpty()) {
+                    continue;
+                }
+                
+                String[] parts = line.split("\\s+");
+                if (parts.length != 2) {
+                    System.err.println("Error: Invalid point format");
+                    System.exit(3);
+                }
+                
+                try {
+                    int x = Integer.parseInt(parts[0]);
+                    int y = Integer.parseInt(parts[1]);
+                    points.add(new TrianglesUtils.Point(x, y));
+                    pointCount++;
+                } catch (NumberFormatException e) {
+                    System.err.println("Error: Invalid coordinate values");
+                    System.exit(3);
+                }
+            }
+            
+            if (pointCount < n) {
+                System.err.println("Error: Expected " + n + " points but found only " + pointCount);
+                System.exit(3);
+            }
+        }
+        
+        return points;
+    }
+    
+    /**
+     * Count right triangles using multiple processes.
+     * Each process checks a subset of the points as right-angle corners.
+     * Uses pipes (stdin/stdout) for communication between processes.
+     */
+    private static int countWithMultipleProcesses(java.util.List<TrianglesUtils.Point> points, int numProcesses)
+            throws IOException {
+
+        int totalCount = 0;
+        List<Process> processes = new ArrayList<>();
+        List<BufferedReader> readers = new ArrayList<>();
+
+        // Split work evenly among processes
+        int pointsPerProcess = (points.size() + numProcesses - 1) / numProcesses;
+
+        // Start child processes
+        for (int processIndex = 0; processIndex < numProcesses; processIndex++) {
+            int startIdx = processIndex * pointsPerProcess;
+            int endIdx = Math.min((processIndex + 1) * pointsPerProcess, points.size());
+
+            // Skip if no work for this process
+            if (startIdx >= points.size()) {
+                break;
+            }
+
+            try {
+                // Start child process
+                ProcessBuilder pb = new ProcessBuilder(
+                    "java",
+                    "-cp",
+                    ".",
+                    "com.tryright.SingleProcessTriangleCounter"
+                );
+
+                Process process = pb.start();
+                processes.add(process);
+
+                // Send data to child via stdin
+                try (java.io.PrintWriter writer = new java.io.PrintWriter(process.getOutputStream())) {
+                    // Send number of points
+                    writer.println(points.size());
+
+                    // Send all points
+                    for (TrianglesUtils.Point p : points) {
+                        writer.println(p.x + " " + p.y);
+                    }
+
+                    // Send start and end indices
+                    writer.println(startIdx);
+                    writer.println(endIdx);
+
+                    writer.flush();
+                }
+
+                // Read result from child via stdout
+                BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream())
+                );
+                readers.add(reader);
+
+            } catch (IOException e) {
+                System.err.println("Error: Failed to start child process");
+                // Kill any processes we've already started
+                for (Process p : processes) {
+                    p.destroy();
+                }
+                throw e;
+            }
+        }
+        
+        // Collect results from all child processes
+        for (int i = 0; i < processes.size(); i++) {
+            try {
+                BufferedReader reader = readers.get(i);
+                String result = reader.readLine();
+                
+                if (result != null) {
+                    try {
+                        int count = Integer.parseInt(result.trim());
+                        totalCount += count;
+                    } catch (NumberFormatException e) {
+                        System.err.println("Error: Invalid result from child process");
+                        // Kill all processes
+                        for (Process p : processes) {
+                            p.destroy();
+                        }
+                        System.exit(1);
+                    }
+                }
+                
+                // Wait for process to finish
+                int exitCode = processes.get(i).waitFor();
+                if (exitCode != 0) {
+                    System.err.println("Warning: Child process exited with code " + exitCode);
+                }
+                
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.err.println("Error: Interrupted waiting for child process");
+                System.exit(1);
+            }
+        }
+        
+        return totalCount;
+    }
+}

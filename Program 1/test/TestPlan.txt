@@ -1,0 +1,78 @@
+Right Triangles Program - Test Plan
+====================================
+
+Program Overview
+----------------
+Counts right triangles from a set of 2D points using direction vectors.
+Multi-process version distributes work across child processes.
+
+Files:
+- Triangles.java: Single-process version
+- ProcessTriangles.java: Multi-process coordinator
+- SingleProcessTriangleCounter.java: Child process worker
+- TrianglesUtils.java: Shared algorithm (O(n^2))
+
+Exit Codes: 1 = usage error, 2 = file error, 3 = format error
+
+
+Test Cases
+----------
+
+Functional Tests:
+
+  Test File                  | Points | Expected | Description
+  ---------------------------|--------|----------|---------------------------
+  single_right_triangle.txt  |   3    |    1     | Minimum valid case
+  square_points.txt          |   4    |    4     | Square corners
+  multiple_triangles.txt     |   8    |   18     | Complex configuration
+  test_spec_list.txt         |   5    |    4     | Professor's test
+  negative_coords.txt        |   5    |    4     | All quadrants
+  collinear_points.txt       |   6    |    6     | Points on axes
+  duplicate_points.txt       |   4    |    6     | Handles duplicates
+
+Edge Cases:
+
+  Test File                  | Points | Expected | Description
+  ---------------------------|--------|----------|---------------------------
+  no_points.txt              |   0    |    0     | Empty dataset
+  test_not_triangle.txt      |   2    |    0     | Too few points
+  test_two_points.txt        |   3    |    0     | No right angle
+  test_giant_triangle.txt    |   9    |   12     | Large coordinates
+
+Performance Tests:
+
+  Test File                  | Points | Expected | Description
+  ---------------------------|--------|----------|---------------------------
+  test_time_list.txt         | 1999   |  2161    | Medium dataset
+  test_long_list.txt         | 5000   | 32909    | Large dataset (graded)
+
+
+Running Tests
+-------------
+
+Compile:
+  javac com/tryright/*.java
+
+Single-process:
+  java com.tryright.Triangles test/<testfile>.txt
+
+Multi-process:
+  java com.tryright.ProcessTriangles test/<testfile>.txt <num_processes>
+
+Example:
+  java com.tryright.ProcessTriangles test/test_long_list.txt 8
+
+
+Performance Results
+-------------------
+Tested on 5000 points with varying process counts:
+
+  Processes | Time (sec) | Speedup
+  ----------|------------|--------
+      1     |   16.69    |  1.00x
+      2     |    7.48    |  2.23x
+      4     |    6.51    |  2.56x
+      8     |    6.87    |  2.43x
+     16     |    7.66    |  2.18x
+
+Optimal: 4 processes (matches CPU core count)
