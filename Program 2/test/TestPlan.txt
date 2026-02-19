@@ -1,0 +1,92 @@
+Right Triangles Program 2 - Test Plan
+======================================
+
+Program Overview
+----------------
+Counts right triangles from a set of 2D points using direction vectors.
+Compares multi-process vs multi-thread implementations.
+
+Files:
+- Triangles.java: Single-process baseline
+- ProcessTriangles.java: Multi-process coordinator (uses pipes for IPC)
+- ThreadTriangles.java: Multi-thread version (uses shared memory)
+- SingleProcessTriangleCounter.java: Child process worker
+- TrianglesUtils.java: Shared algorithm (O(n^2))
+
+Exit Codes: 1 = usage error, 2 = file error, 3 = format error
+
+
+Test Cases
+----------
+
+Performance Test Files:
+
+  Test File              | Points | Expected | Description
+  -----------------------|--------|----------|---------------------------
+  test_long_list.txt     |  5000  |  32909   | Large dataset
+  scaletest.txt          | 10000  |  19414   | Extra large dataset
+
+
+Running Tests
+-------------
+
+Compile:
+  javac com/tryright/*.java
+
+Single-process:
+  java com.tryright.Triangles test/<testfile>.txt
+
+Multi-process:
+  java com.tryright.ProcessTriangles test/<testfile>.txt <num_processes>
+
+Multi-thread:
+  java com.tryright.ThreadTriangles test/<testfile>.txt <num_threads>
+
+Example:
+  java com.tryright.ProcessTriangles test/scaletest.txt 8
+  java com.tryright.ThreadTriangles test/scaletest.txt 8
+
+
+Performance Results - scaletest.txt (10000 points)
+--------------------------------------------------
+Tested on Ubuntu VM (4 cores)
+
+  Workers | Process (s) | Thread (s) | Thread Speedup
+  --------|-------------|------------|---------------
+      1   |    40.420   |    45.683  |    0.88x
+      2   |    28.456   |    24.983  |    1.14x
+      4   |    20.473   |    15.513  |    1.32x
+      8   |    29.423   |    18.340  |    1.60x
+     16   |    23.893   |    18.453  |    1.29x
+     32   |    28.406   |    20.060  |    1.42x
+
+
+Performance Results - test_long_list.txt (5000 points)
+------------------------------------------------------
+Tested on Ubuntu VM (4 cores)
+
+  Workers | Process (s) | Thread (s) | Thread Speedup
+  --------|-------------|------------|---------------
+      1   |     9.166   |     9.936  |    0.92x
+      2   |     6.620   |     6.266  |    1.06x
+      4   |     4.880   |     4.153  |    1.18x
+      8   |     6.546   |     4.560  |    1.44x
+     16   |     8.406   |     4.683  |    1.80x
+     32   |    13.346   |     4.510  |    2.96x
+
+
+Analysis
+--------
+Threads outperform processes at higher worker counts due to:
+1. No JVM startup overhead per worker
+2. No pipe serialization (processes send all points via stdin)
+3. Direct shared memory access vs IPC
+
+At low worker counts (1-2), overhead differences are minimal.
+At higher counts (4-8), threads show 30-60% improvement.
+
+Processes degrade at high worker counts (e.g. 32 processes = 13.3s vs 4.5s
+for threads on 5000 points) due to cumulative JVM startup and pipe overhead.
+Threads remain flat because shared memory has no per-worker IPC cost.
+
+Optimal configuration: 4 threads (matches VM core count, best performance)
