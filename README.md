@@ -1,16 +1,19 @@
 # CSC4180 Operating Systems
 
-Coursework repository with three Java programs that count right triangles in 2D point sets. Each program builds on the previous one with performance and storage improvements.
+Coursework repository for Java programs exploring concurrency, multi-processing, and synchronization in an OS context.
 
 ## Workspace Layout
 
-- Program 1/ - single-process baseline
+- Program 1/ - single-process right triangle counter baseline
 - Program 2/ - multi-thread and multi-process versions
 - Program 3/ - PointStore abstraction with text and binary input support
+- Program 4/ - JUnit-tested PointStore + pizza buffet concurrency problem (three synchronization implementations)
 
 Each program folder contains:
-- com/tryright/ - Java source files
+- com/tryright/ - Java source files for right triangle counting
+- com/pizza/ - Java source files for the pizza buffet problem (Programs 3–4)
 - test/ - input datasets, TestPlan.txt, and PDFs
+- lib/ - third-party JARs (JUnit, Programs 3–4)
 
 ## Build
 
@@ -18,6 +21,12 @@ From any program folder:
 
 ```
 javac com/tryright/*.java
+```
+
+To compile Program 4 pizza sources:
+
+```
+javac com/pizza/*.java
 ```
 
 ## Run
@@ -62,6 +71,34 @@ Example for one point (1, 2):
 - TextPointStore loads text into int arrays.
 - BinPointStore uses memory-mapped I/O for binary files.
 - TrianglesUtils auto-detects .dat files.
+
+## Program 4 Notes
+
+### PointStore JUnit Tests
+
+`PointStoreTest.java` uses JUnit Jupiter (via `lib/junit-platform-console-standalone-1.10.2.jar`) to validate both `TextPointStore` and `BinPointStore` against correct and malformed input files.
+
+Run tests from the `Program 4/` folder:
+
+```
+java -jar lib/junit-platform-console-standalone-1.10.2.jar --class-path . --select-class com.tryright.PointStoreTest
+```
+
+### Pizza Buffet Concurrency Problem
+
+The `com/pizza/` package implements a thread-safe pizza buffet (`Buffet` interface) in three ways:
+
+| Class | Mechanism |
+|---|---|
+| `BuffetSynchronized` | Java `synchronized` methods + `notifyAll()` |
+| `BuffetLock` | `ReentrantLock` + `Condition` variables |
+| `BuffetSemaphore` | `Semaphore` primitives |
+
+Key semantics:
+- `TakeAny(n)` — blocks a non-vegetarian patron until *n* slices are available; prioritizes non-veg slices when vegetarian patrons are waiting.
+- `TakeVeg(n)` — blocks a vegetarian patron until *n* vegetarian slices (cheese or veggie) are available.
+- `AddPizza(n, type)` — adds slices one at a time, blocking when the buffet is at capacity.
+- `close()` — signals all blocked threads to unblock and return `null`/`false`.
 
 ## Tests
 
