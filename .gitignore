@@ -7,3 +7,12 @@ Thumbs.db
 *.exe
 *.out
 *.class
+
+# Submission zips
+*.zip
+
+# Duplicate/draft folders
+Oren_Kagan_Program3 (2)/
+
+# Stray PDFs outside of test plans
+Program 1/test/TestPlan.pdf
