@@ -3,6 +3,27 @@
     "configurations": [
         {
             "type": "java",
+            "name": "SimpleDriver",
+            "request": "launch",
+            "mainClass": "com.pizza.SimpleDriver",
+            "projectName": "CSC4180 Operating Systems_1c49a29e"
+        },
+        {
+            "type": "java",
+            "name": "ThreadTriangles",
+            "request": "launch",
+            "mainClass": "com.tryright.ThreadTriangles",
+            "projectName": "CSC4180 Operating Systems_1c49a29e"
+        },
+        {
+            "type": "java",
+            "name": "TestDriver",
+            "request": "launch",
+            "mainClass": "com.pizza.TestDriver",
+            "projectName": "CSC4180 Operating Systems_1c49a29e"
+        },
+        {
+            "type": "java",
             "name": "SingleProcessTriangleCounter",
             "request": "launch",
             "mainClass": "com.tryright.SingleProcessTriangleCounter",

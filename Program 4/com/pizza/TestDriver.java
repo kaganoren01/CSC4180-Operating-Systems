@@ -8,29 +8,36 @@ import java.util.List;
  * @version 1.0
  */
 public class TestDriver {
+
+  private static final String[] buffets = {
+    "Semaphore",
+    "Synchronized",
+    "Lock"
+  };
   public static void main(String[] args) throws InterruptedException {
-    System.out.println("Testing buffet implementation: " + newBuffet().type());
-    // - Test basic add and take operations
-    BasicAddTake(newBuffet());
-    // - Test edge cases (taking more than available, taking zero slices, etc.)
-    EdgeCases(newBuffet());
-    // - Test concurrent access with multiple threads
-    ConcurrentAccess(newBuffet());
-    // - Test vegetarian priority
-    VegetarianPriority(newBuffet());
-    // - Test FIFO ordering
-    FIFOOrdering(newBuffet());
-    // - Test blocking behavior at capacity
-    BlockingAtCapacity(newBuffet());
-    // - Stress tests with multiple concurrent threads
-    StressTest(newBuffet());
+    for (int i = 0; i < buffets.length; i++) {
+      System.out.println("\n\nTesting buffet implementation: " + buffets[i]);
+      testAll(buffets[i]);
+    }
   }
 
-  private static Buffet newBuffet() {
-    // Change the implementation being tested by swapping this one line:
-    // return new BuffetSemaphore(20);
-    return new BuffetSynchronized(20);
-    // return new BuffetLock(20);
+  public static void testAll(String buffetType) throws InterruptedException {
+    BasicAddTake(newBuffet(buffetType));
+    EdgeCases(newBuffet(buffetType));
+    ConcurrentAccess(newBuffet(buffetType));
+    VegetarianPriority(newBuffet(buffetType));
+    FIFOOrdering(newBuffet(buffetType));
+    BlockingAtCapacity(newBuffet(buffetType));
+    StressTest(newBuffet(buffetType));
+  }
+
+  public static Buffet newBuffet(String buffetType) {
+    return switch (buffetType) {
+      case "Semaphore" -> new BuffetSemaphore(20);
+      case "Synchronized" -> new BuffetSynchronized(20);
+      case "Lock" -> new BuffetLock(20);
+      default -> null;
+    };
   }
 
   // - Test basic add and take operations

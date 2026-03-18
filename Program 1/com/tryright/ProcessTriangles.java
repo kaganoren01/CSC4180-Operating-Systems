@@ -97,8 +97,8 @@ public class ProcessTriangles {
     /**
      * Read all points from the input file
      */
-    private static java.util.List<TrianglesUtils.Point> readPoints(String filename) throws IOException {
-        java.util.List<TrianglesUtils.Point> points = new java.util.ArrayList<>();
+    private static List<Point> readPoints(String filename) throws IOException {
+        List<Point> points = new ArrayList<>();
         
         try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
             String line = reader.readLine();
