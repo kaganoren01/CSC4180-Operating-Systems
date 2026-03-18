@@ -19,6 +19,9 @@ public class TestDriver {
     false,
     false
   };
+  private static long[] totalTimes = {0, 0, 0};
+  private static long[] stressTestTimes = {0, 0, 0};
+  private static int stressTestCount = 0;
   public static void main(String[] args) throws InterruptedException {
     for (int i = 0; i < buffets.length; i++) {
       System.out.println("\n\nTesting buffet implementation: " + buffets[i]);
@@ -28,13 +31,25 @@ public class TestDriver {
       System.out.println("All buffets work");
     } else {
       System.out.println("Some buffets do not work");
+      System.out.println("Semaphore: " + buffetWorks[0]);
+      System.out.println("Synchronized: " + buffetWorks[1]);
+      System.out.println("Lock: " + buffetWorks[2]);
+    }
+    for (int i = 0; i < totalTimes.length; i++) {
+      System.out.println("Time for " + buffets[i] + ": " + totalTimes[i] + " ms");
+    }
+    for (int i = 0; i < stressTestTimes.length; i++) {
+      System.out.println("Time for StressTest for " + buffets[i] + ": " + stressTestTimes[i] + " ms");
     }
   }
 
   public static void testAll(String buffetType, int i) throws InterruptedException {
+    long start = System.nanoTime();
     if (BasicAddTake(newBuffet(buffetType)) && EdgeCases(newBuffet(buffetType)) && ConcurrentAccess(newBuffet(buffetType)) && VegetarianPriority(newBuffet(buffetType)) && FIFOOrdering(newBuffet(buffetType)) && BlockingAtCapacity(newBuffet(buffetType)) && StressTest(newBuffet(buffetType))) {
       buffetWorks[i] = true;
     }
+    long elapsed = System.nanoTime() - start;
+    totalTimes[i] += elapsed / 1_000_000;
   }
 
   public static Buffet newBuffet(String buffetType) {
@@ -219,7 +234,7 @@ public class TestDriver {
 
     // Put only vegetarian slices first.
     buffet.AddPizza(3, SliceType.Cheese);
-
+    
     final List<SliceType>[] vegResult = new List[1];
     final List<SliceType>[] anyResult = new List[1];
 
@@ -391,7 +406,7 @@ public class TestDriver {
       eater.setDaemon(true);
       threads.add(eater);
     }
-
+    long nanoStart = System.nanoTime();
     // Start all threads
     for (Thread t : threads) {
       t.start();
@@ -419,7 +434,9 @@ public class TestDriver {
       System.out.println("Stress test completed: " + (NUM_BAKERS + NUM_EATERS)
           + " threads, " + totalAdds + " adds, " + totalTakes + " take calls.");
     }
-
+    long nanoEnd = System.nanoTime();
+    long elapsed = nanoEnd - nanoStart;
+    stressTestTimes[stressTestCount++] += elapsed / 1_000_000;
     System.out.println("=== End StressTest ===");
     return true;
   }
