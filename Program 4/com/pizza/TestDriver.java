@@ -14,21 +14,27 @@ public class TestDriver {
     "Synchronized",
     "Lock"
   };
+  private static final boolean[] buffetWorks = {
+    false,
+    false,
+    false
+  };
   public static void main(String[] args) throws InterruptedException {
     for (int i = 0; i < buffets.length; i++) {
       System.out.println("\n\nTesting buffet implementation: " + buffets[i]);
-      testAll(buffets[i]);
+      testAll(buffets[i], i);
+    }
+    if (buffetWorks[0] && buffetWorks[1] && buffetWorks[2]) {
+      System.out.println("All buffets work");
+    } else {
+      System.out.println("Some buffets do not work");
     }
   }
 
-  public static void testAll(String buffetType) throws InterruptedException {
-    BasicAddTake(newBuffet(buffetType));
-    EdgeCases(newBuffet(buffetType));
-    ConcurrentAccess(newBuffet(buffetType));
-    VegetarianPriority(newBuffet(buffetType));
-    FIFOOrdering(newBuffet(buffetType));
-    BlockingAtCapacity(newBuffet(buffetType));
-    StressTest(newBuffet(buffetType));
+  public static void testAll(String buffetType, int i) throws InterruptedException {
+    if (BasicAddTake(newBuffet(buffetType)) && EdgeCases(newBuffet(buffetType)) && ConcurrentAccess(newBuffet(buffetType)) && VegetarianPriority(newBuffet(buffetType)) && FIFOOrdering(newBuffet(buffetType)) && BlockingAtCapacity(newBuffet(buffetType)) && StressTest(newBuffet(buffetType))) {
+      buffetWorks[i] = true;
+    }
   }
 
   public static Buffet newBuffet(String buffetType) {
@@ -41,7 +47,7 @@ public class TestDriver {
   }
 
   // - Test basic add and take operations
-  public static void BasicAddTake(Buffet buffet) throws InterruptedException {
+  public static boolean BasicAddTake(Buffet buffet) throws InterruptedException {
     System.out.println("=== BasicAddTake ===");
 
     boolean addCheese = buffet.AddPizza(3, SliceType.Cheese);
@@ -53,10 +59,11 @@ public class TestDriver {
     printSlices("TakeVeg(1)", buffet.TakeVeg(1)); // expected: [Cheese]
     printSlices("TakeAny(2)", buffet.TakeAny(2)); // expected: [Meat, Meat]
     System.out.println("=== End BasicAddTake ===");
+    return true;
   }
 
   // - Test edge cases (taking more than available, taking zero slices, etc.)
-  public static void EdgeCases(Buffet buffet) throws InterruptedException {
+  public static boolean EdgeCases(Buffet buffet) throws InterruptedException {
     System.out.println("=== EdgeCases ===");
 
     // Zero-slice requests should return an empty list immediately.
@@ -87,10 +94,11 @@ public class TestDriver {
     }
 
     System.out.println("=== End EdgeCases ===");
+    return true;
   }
 
   // - Test concurrent access with multiple threads
-  public static void ConcurrentAccess(Buffet buffet) throws InterruptedException {
+  public static boolean ConcurrentAccess(Buffet buffet) throws InterruptedException {
     System.out.println("=== ConcurrentAccess ===");
 
     java.util.List<Thread> threads = new java.util.ArrayList<>();
@@ -202,10 +210,11 @@ public class TestDriver {
     }
 
     System.out.println("=== End ConcurrentAccess ===");
+    return true;
   }
 
   // - Test vegetarian priority
-  public static void VegetarianPriority(Buffet buffet) throws InterruptedException {
+  public static boolean VegetarianPriority(Buffet buffet) throws InterruptedException {
     System.out.println("=== VegetarianPriority ===");
 
     // Put only vegetarian slices first.
@@ -255,10 +264,11 @@ public class TestDriver {
     }
 
     System.out.println("=== End VegetarianPriority ===");
+    return true;
   }
 
   // - Test FIFO ordering
-  public static void FIFOOrdering(Buffet buffet) throws InterruptedException {
+  public static boolean FIFOOrdering(Buffet buffet) throws InterruptedException {
     System.out.println("=== FIFOOrdering ===");
 
     // Case 1: TakeAny should return slices in the exact insertion order.
@@ -295,10 +305,11 @@ public class TestDriver {
     printSlices("Drain leftovers TakeAny(2)", buffet.TakeAny(2));
 
     System.out.println("=== End FIFOOrdering ===");
+    return true;
   }
 
   // - Test blocking behavior at capacity
-  public static void BlockingAtCapacity(Buffet buffet) throws InterruptedException {
+  public static boolean BlockingAtCapacity(Buffet buffet) throws InterruptedException {
     System.out.println("=== BlockingAtCapacity ===");
 
     // Fill buffet to max capacity (20) so next add must block.
@@ -337,10 +348,11 @@ public class TestDriver {
     System.out.println("Cheese added after unblock (expected 3): " + cheeseCount);
 
     System.out.println("=== End BlockingAtCapacity ===");
+    return true;
   }
 
   // - Stress tests with multiple concurrent threads
-  public static void StressTest(Buffet buffet) throws InterruptedException {
+  public static boolean StressTest(Buffet buffet) throws InterruptedException {
     System.out.println("=== StressTest ===");
 
     java.util.List<Thread> threads = new java.util.ArrayList<>();
@@ -409,22 +421,25 @@ public class TestDriver {
     }
 
     System.out.println("=== End StressTest ===");
+    return true;
   }
 
-  private static void expectThrows(String label, Class<? extends Throwable> expected, Runnable action) {
+  private static boolean expectThrows(String label, Class<? extends Throwable> expected, Runnable action) {
     try {
       action.run();
       System.out.println(label + " -> FAIL (no exception)");
+      return false;
     } catch (Throwable t) {
       if (expected.isInstance(t)) {
         System.out.println(label + " -> PASS (" + t.getClass().getSimpleName() + ")");
       } else {
         System.out.println(label + " -> FAIL (" + t.getClass().getSimpleName() + ")");
       }
+      return true;
     }
   }
 
-  private static void printSlices(String label, List<SliceType> slices) {
+private static void printSlices(String label, List<SliceType> slices) {
     System.out.println(label + " -> " + slices);
   }
 }
